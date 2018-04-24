@@ -52,7 +52,7 @@
 #include "usb_host.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "Private_lib/printf.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -93,11 +93,11 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void dbg_write_str(const char *msg);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+char temp[100];
 /* USER CODE END 0 */
 
 /**
@@ -140,6 +140,11 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
+  dbg_write_str("probando verboso\n");
+  for (int i=0;i<10;i++){
+  sprintf(temp,"iter: %d\n",i);
+  dbg_write_str(temp);
+}
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -572,6 +577,29 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+#define __armsemihosting__
+void dbg_write_str(const char *msg)
+{
+#ifdef __armsemihosting__
+//depuración en modo verboso
+// Manual semi-hosting, because the GCC ARM Embedded's semihosting wasn't working.
+//https://answers.launchpad.net/gcc-arm-embedded/+question/232520
+ for (; *msg; ++msg)
+ {
+  // Moves a pointer to msg into r1, sets r0 to 0x03,
+  // and then performs a special breakpoint that OpenOCD sees as
+  // the semihosting call. r0 tells OpenOCD which semihosting
+  // function we're calling. In this case WRITEC, which writes
+  // a single char pointed to by r1 to the console.
+  __asm__ ("mov r1,%0; mov r0,$3; BKPT 0xAB" :
+                                             : "r" (msg)
+                                             : "r0", "r1"
+  );
+ }
+//#else
+// printf ("%s", msg);
+#endif
+}
 
 /* USER CODE END 4 */
 
